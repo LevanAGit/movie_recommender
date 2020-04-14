@@ -15,6 +15,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from fuzzywuzzy import process
 import os
+import random
 
 user = 'postgres'
 pwd = os.getenv('PG_PWD')
@@ -49,14 +50,17 @@ def main():
     print()
     print("Here are your recommendations: ")
     print()
-    print(result.head(5))
+    print(result.sample(frac=1).head(5))
     
 def train_nmf():
-    m = NMF(n_components=2, init='nndsvd', random_state=42, alpha=0)
+    print("Training Pickle, please wait!")
+    m = NMF(n_components=20, init='random', random_state=42,
+            alpha=0.01, max_iter=15)
     m.fit(usmore)
     nmfpickle = open("nmf.pkl", 'wb')
     pickle.dump(m, nmfpickle)
     nmfpickle.close()
+    print("Pickle trained!")
     return
 
 def recommendations(mlist, movid):
@@ -76,7 +80,8 @@ def recommendations(mlist, movid):
                         index=usmore.index)
     result = pd.DataFrame({'title': dfmovies['title'], 'rank': ranking})
     result.sort_values('rank', ascending=False, inplace=True)
-    result = result['title'].iloc[0:5]
+    result = result['title'].iloc[0:20].dropna(axis=0)
+    print(result)
     return result
 
 def fuzz_lookup(user_input):
